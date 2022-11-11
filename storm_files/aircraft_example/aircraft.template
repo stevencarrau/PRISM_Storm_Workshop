@@ -1,0 +1,75 @@
+mdp
+
+
+
+const int N=5;
+const int xMAX = N-1;
+const int yMAX = N-1;
+const int axMAX = xMAX;
+const int axMIN = 0;
+const int dxMAX = xMAX;
+const int dyMAX = yMAX;
+const int dxMIN = 0;
+const int dyMIN = 0;
+const double slippery = 0.0;
+
+const double damage_prob_aggressive;
+const double damage_prob_gentle = 0; //Hard-code to 0 for expected reward
+//const double damage_prob_gentle; // For max probability
+const damage_bins = 20;
+const min_damage = 0;
+const max_damage = 80;
+formula broken1 = damage>75;
+formula broken2 = damage2>75;
+formula broken = broken1|broken2;
+
+
+module panel
+	damage : [min_damage..max_damage] init init_damage;
+	[gentle] true -> (1-damage_prob_gentle):(damage'=damage) + damage_prob_gentle:(damage'=min(damage+damage_bins,max_damage));
+	[aggressive] true -> (1-damage_prob_aggressive):(damage'=damage) + damage_prob_aggressive:(damage'=min(damage+damage_bins,max_damage));
+endmodule
+
+module panel2
+	damage2 : [min_damage..max_damage] init init_damage2;
+	[gentle] true -> (1-damage_prob_gentle):(damage2'=damage2) + damage_prob_gentle:(damage2'=min(damage2+damage_bins,max_damage));
+	[aggressive] true -> (1-damage_prob_aggressive):(damage2'=damage2) + damage_prob_aggressive:(damage2'=min(damage+damage_bins,max_damage));
+endmodule
+
+formula westenabled = dx != dxMIN;
+formula eastenabled = dx != dxMAX;
+formula northenabled = dy != dyMIN;
+formula southenabled = dy != dyMAX;
+formula done = dx = dxMAX & dy = dyMAX;
+
+module master
+    turn : bool init false;
+    turn_type_gentle: bool init false;
+    [north] !done & turn -> (turn'=!turn);
+    [south] !done & turn -> (turn'=!turn);
+    [east]  !done & turn -> (turn'=!turn);
+    [west]  !done & turn -> (turn'=!turn);
+    [gentle]  !done & !turn -> (turn'=!turn)&(turn_type_gentle'=true);
+    [aggressive] !done & !turn -> (turn'=!turn)&(turn_type_gentle'=false);
+    [done] done -> true;	
+endmodule
+
+
+module drone
+    dx : [dxMIN..dxMAX] init initX;
+    dy : [dyMIN..dyMAX] init initY;
+    [west] westenabled -> (1-slippery): (dx'=max(dx-1,dxMIN)) + slippery: (dx'=max(dx,dxMIN));
+    [east] eastenabled -> (1-slippery): (dx'=min(dx+1,dxMAX)) + slippery: (dx'=min(dx,dxMAX));
+    [south]  southenabled -> (1-slippery): (dy'=min(dy+1,dyMAX)) + slippery: (dy'=min(dy,dyMAX));
+    [north]  northenabled -> (1-slippery): (dy'=max(dy-1,dyMIN)) + slippery: (dy'=max(dy,dyMIN));
+endmodule
+
+rewards
+    [gentle] true : 25;
+    [aggressive] true : 10;
+endrewards
+
+
+
+label "goal" = done;
+label "broken" = broken;

@@ -1,0 +1,77 @@
+mdp
+
+const int RADIUS=2;
+const int N=6;
+const int xMAX = N-1;
+const int yMAX = N-1;
+const int aXMAX = xMAX;
+const int aYMAX = yMAX;
+const int aXMIN = 0;
+const int aYMIN = 1;
+const int dxMAX = xMAX;
+const int dyMAX = yMAX;
+const int dxMIN = 0;
+const int dyMIN = 0;
+const double slippery=0;
+
+formula done = start & pickup & dx = 0 & dy = 0;
+formula collect = start & dx = dxMAX & dy = dyMAX;
+formula crash = (dx=ax) & (ay=dx);
+formula seedrone = ax-dx < RADIUS + 1 & dx-ax < RADIUS +1 & ay-dy < RADIUS+1 & dy -ay < RADIUS+1;
+
+
+
+module master
+    start : bool init false;
+    turn : bool init false;
+
+    [placement] !start -> (start'=true);
+    [north] start & !done & turn -> (turn'=!turn);
+    [south] start & !done & turn -> (turn'=!turn);
+    [east]  start & !done & turn -> (turn'=!turn);
+    [west]  start & !done & turn -> (turn'=!turn);
+    [adv]  start & !done & !turn -> (turn'=!turn);
+endmodule
+
+
+module drone
+    dx : [dxMIN..dxMAX] init 1;
+    dy : [dyMIN..dyMAX] init 1;
+    pickup : bool init false;
+
+    [west] !pickup & !collect -> (1-slippery): (dx'=max(dx-1,dxMIN)) + slippery: (dx'=max(dx,dxMIN));
+    [east] !pickup & !collect -> (1-slippery): (dx'=min(dx+1,dxMAX)) + slippery: (dx'=min(dx,dxMAX));
+    [south] !pickup & !collect -> (1-slippery): (dy'=min(dy+1,dyMAX)) + slippery: (dy'=min(dy,dyMAX));
+    [north] !pickup & !collect -> (1-slippery): (dy'=max(dy-1,dyMIN)) + slippery: (dy'=max(dy,dyMIN));
+    [west] !pickup & collect -> (1-slippery): (dx'=max(dx-1,dxMIN))&(pickup'=true) + slippery: (dx'=max(dx,dxMIN))&(pickup'=true);
+    [east] !pickup & collect -> (1-slippery): (dx'=min(dx+1,dxMAX))&(pickup'=true) + slippery: (dx'=min(dx,dxMAX))&(pickup'=true);
+    [south] !pickup & collect -> (1-slippery): (dy'=min(dy+1,dyMAX))&(pickup'=true) + slippery: (dy'=min(dy,dyMAX))&(pickup'=true);
+    [north] !pickup & collect -> (1-slippery): (dy'=max(dy-1,dyMIN))&(pickup'=true) + slippery: (dy'=max(dy,dyMIN))&(pickup'=true);
+    [west] pickup -> (1-slippery): (dx'=max(dx-1,dxMIN)) + slippery: (dx'=max(dx,dxMIN));
+    [east] pickup -> (1-slippery): (dx'=min(dx+1,dxMAX)) + slippery: (dx'=min(dx,dxMAX));
+    [south] pickup -> (1-slippery): (dy'=min(dy+1,dyMAX)) + slippery: (dy'=min(dy,dyMAX));
+    [north] pickup -> (1-slippery): (dy'=max(dy-1,dyMIN)) + slippery: (dy'=max(dy,dyMIN));
+endmodule
+
+
+
+module agent
+    ax : [aXMIN..aXMAX] init 2;
+    ay : [aYMIN..aYMAX] init 2;
+
+    [adv] true -> 1/4 : (ax'=max(ax-1,aXMIN)) +  1/4: (ax'=min(ax+1,aXMAX))
+                + 1/4 : (ay'=max(ay-1,aYMIN)) + 1/4 : (ay'=min(ay+1,aYMAX));
+endmodule
+
+
+label "goal" = done;
+label "seedrone" = seedrone;
+
+rewards
+    [north] true : 0.01;
+    [south] true : 0.01;
+    [west] true : 0.01;
+    [east] true : 0.01;
+    seedrone = false:100;
+
+endrewards

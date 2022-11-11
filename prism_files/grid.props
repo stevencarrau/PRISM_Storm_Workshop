@@ -1,0 +1,6 @@
+Pmax=? [F "goal"]
+
+Pmax=? [F !crash U done]
+
+Rmin=? [F done]
+
